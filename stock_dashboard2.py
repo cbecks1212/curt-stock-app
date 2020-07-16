@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import lxml
 def main():
 
-    st.title('Curt App')
+    #st.title('Curt App')
     st.subheader('Making Investing less intimidating')
 
 #####get ticker data
@@ -91,6 +91,7 @@ def main():
         #st.subheader(dropdown + "'s daily returns over " + start_date)
                 data = daily_returns(dropdown, start_date)
             elif dropdown_option == 'Short-Vs-Long-Term Moving Avg':
+                st.markdown("The 50-day moving average exceeding the 200-day moving average is a buy signal.")
         #st.subheader(dropdown + "'s 50-day Moving Average Vs. 200-Day Moving Average")
                 data = moving_averages(dropdown, start_date)
             elif dropdown_option == 'Cumulative Returns':
