@@ -7,7 +7,7 @@ import requests
 import pandas as pd
 from pylab import plt, mpl
 import matplotlib.pyplot as plt
-
+import lxml
 def main():
 
     st.title('Curt App')
