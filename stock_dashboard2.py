@@ -26,56 +26,153 @@ def main():
 
 
     def load_data_history(tickers, start_date):
-        ticker_data = yf.Tickers(tickers)
-        data = ticker_data.history(period=start_date)
-        for ticker in tickers:   
+        if len(tickers) > 1 and type(tickers) != str:
+            ticker_data = yf.Tickers(tickers)
+            data = ticker_data.history(period=start_date)
+            for ticker in tickers:   
+                fig = go.Figure()
+                fig = px.line(data, x=data.index, y=data['Close'][ticker])
+                fig.update_xaxes(title='Date')
+                fig.update_yaxes(title='Price')
+                st.subheader(ticker + "'s Price History")
+                st.plotly_chart(fig)
+        elif len(tickers) == 1 and type(tickers) != str:
+            ticker = tickers[0]
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)   
             fig = go.Figure()
-            fig = px.line(data, x=data.index, y=data['Close'][ticker])
+            fig = px.line(data, x=data.index, y=data['Close'])
             fig.update_xaxes(title='Date')
             fig.update_yaxes(title='Price')
             st.subheader(ticker + "'s Price History")
             st.plotly_chart(fig)
+        elif type(tickers) == str:
+            ticker = tickers
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)
+            fig = go.Figure()
+            fig = px.line(data, x=data.index, y=data['Close'])
+            fig.update_xaxes(title='Date')
+            fig.update_yaxes(title='Price')
+            st.subheader(ticker + "'s Price History")
+            st.plotly_chart(fig)
+
     
 
     def daily_returns(tickers, start_date):
-        ticker_data = yf.Tickers(tickers)
-        data = ticker_data.history(period=start_date)
-        for ticker in tickers:
-            daily_returns_data = data['Close'][ticker].pct_change()
+        if len(tickers) > 1 and type(tickers) != str:
+            ticker_data = yf.Tickers(tickers)
+            data = ticker_data.history(period=start_date)
+            for ticker in tickers:
+                daily_returns_data = data['Close'][ticker].pct_change()
+                fig = plt.figure()
+                ax = fig.add_axes([0.1,0.1,0.8,0.8])
+                daily_returns_data.plot.hist(bins=60)
+                ax.set_xlabel('Daily Returns')
+                ax.set_ylabel('Percent')
+                ax.set_title( ticker + ' Daily Returns Data')
+                st.write(fig)
+
+        elif len(tickers) == 1 and type(tickers) != str:
+            ticker = tickers[0]
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)
+            daily_returns_data = data['Close'].pct_change()
             fig = plt.figure()
             ax = fig.add_axes([0.1,0.1,0.8,0.8])
             daily_returns_data.plot.hist(bins=60)
             ax.set_xlabel('Daily Returns')
             ax.set_ylabel('Percent')
             ax.set_title( ticker + ' Daily Returns Data')
-    #plt.show()
+            st.write(fig)
+
+        elif type(tickers) == str:
+            ticker = tickers
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)
+            daily_returns_data = data['Close'].pct_change()
+            fig = plt.figure()
+            ax = fig.add_axes([0.1,0.1,0.8,0.8])
+            daily_returns_data.plot.hist(bins=60)
+            ax.set_xlabel('Daily Returns')
+            ax.set_ylabel('Percent')
+            ax.set_title( ticker + ' Daily Returns Data')
             st.write(fig)
 
     def moving_averages(tickers, start_date):
-        ticker_data = yf.Tickers(tickers)
-        data = ticker_data.history(period=start_date)
-        for ticker in tickers:
-            data['SMA1'] = data['Close'][ticker].rolling(window=50).mean()
-            data['SMA2'] = data['Close'][ticker].rolling(window=200).mean()
+        if len(tickers) > 1 and type(tickers) != str:
+            ticker_data = yf.Tickers(tickers)
+            data = ticker_data.history(period=start_date)
+            for ticker in tickers:
+                data['SMA1'] = data['Close'][ticker].rolling(window=50).mean()
+                data['SMA2'] = data['Close'][ticker].rolling(window=200).mean()
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=data.index, y=data['Close'][ticker], mode='lines', name='Price'))
+                fig.add_trace(go.Scatter(x=data.index, y=data['SMA1'], mode='lines', name='50 day avg'))
+                fig.add_trace(go.Scatter(x=data.index, y=data['SMA2'], mode='lines', name='200 day avg'))
+                st.subheader(ticker + ' 50-Day Moving Average Vs. 200-Day Moving Average')
+                st.write(fig)
+        elif len(tickers) == 1 and type(tickers) != str:
+            ticker = tickers[0]
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)
+            data['SMA1'] = data['Close'].rolling(window=50).mean()
+            data['SMA2'] = data['Close'].rolling(window=200).mean()
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=data.index, y=data['Close'][ticker], mode='lines', name='Price'))
+            fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Price'))
             fig.add_trace(go.Scatter(x=data.index, y=data['SMA1'], mode='lines', name='50 day avg'))
             fig.add_trace(go.Scatter(x=data.index, y=data['SMA2'], mode='lines', name='200 day avg'))
             st.subheader(ticker + ' 50-Day Moving Average Vs. 200-Day Moving Average')
             st.write(fig)
 
+        elif type(tickers) == str:
+            ticker = tickers
+            ticker_data = yf.Ticker(ticker)
+            data = ticker_data.history(period=start_date)
+            data['SMA1'] = data['Close'].rolling(window=50).mean()
+            data['SMA2'] = data['Close'].rolling(window=200).mean()
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Price'))
+            fig.add_trace(go.Scatter(x=data.index, y=data['SMA1'], mode='lines', name='50 day avg'))
+            fig.add_trace(go.Scatter(x=data.index, y=data['SMA2'], mode='lines', name='200 day avg'))
+            st.subheader(ticker + ' 50-Day Moving Average Vs. 200-Day Moving Average')
+            st.write(fig)
+
+            
+
     def plot_returns(tickers):
-        data = yf.Tickers(tickers)
-        df = data.history(period=start_date)
-        returns = df['Close'].resample('M').ffill().pct_change()
-        returns1 = (returns + 1).cumprod()
-        fig = go.Figure()
-        for column in returns1:
-            fig.add_trace(go.Scatter(x=returns1.index, y=returns1[column], mode='lines', name=column))
-            fig.update_layout(
-                title='Cumulative Returns on $1 Investment'
-        )
-        st.write(fig)
+        if len(tickers) > 1 and type(tickers) != str:
+            data = yf.Tickers(tickers)
+            df = data.history(period=start_date)
+            returns = df['Close'].resample('M').ffill().pct_change()
+            returns1 = (returns + 1).cumprod()
+            fig = go.Figure()
+            for column in returns1:
+                fig.add_trace(go.Scatter(x=returns1.index, y=returns1[column], mode='lines', name=column))
+                fig.update_layout(
+                    title='Cumulative Returns on $1 Investment'
+                    )
+            st.write(fig)
+        elif len(tickers) == 1 and type(tickers) != str:
+            ticker = tickers[0]
+            data = yf.Ticker(ticker)
+            df = data.history(period=start_date)
+            returns = df['Close'].resample('M').ffill().pct_change()
+            returns1 = (returns + 1).cumprod()
+            returns1 = returns1.to_frame('Close')
+            fig = px.line(returns1, x=returns1.index, y=returns1['Close'])
+            st.write(fig)
+
+        elif type(tickers) == str:
+            ticker = tickers
+            data = yf.Ticker(ticker)
+            df = data.history(period=start_date)
+            returns = df['Close'].resample('M').ffill().pct_change()
+            returns1 = (returns + 1).cumprod()
+            returns1 = returns1.to_frame('Close')
+            fig = px.line(returns1, x=returns1.index, y=returns1['Close'], title='Cumulative Returns on $1 Investment')
+            st.write(fig)
+
 
     index = st.sidebar.selectbox('Choose an Index: ', ['S&P 500', 'NASDAQ', 'Search for Ticker'])
     dropdown_option = st.sidebar.selectbox('Pick a Chart', ['Price History', 'Short-Vs-Long-Term Moving Avg', 'Daily Returns', 'Cumulative Returns'])
@@ -120,5 +217,19 @@ def main():
                 for stock in stocks:
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
-if __name__ == '__main__':
+
+    elif index == 'Search for Ticker':
+        dropdown = st.sidebar.text_input('enter a ticker')
+        if dropdown_option == 'Price History':
+            data = load_data_history(dropdown, start_date)
+        elif dropdown_option == 'Daily Returns':
+            data = daily_returns(dropdown, start_date)
+        elif dropdown_option == 'Short-Vs-Long-Term Moving Avg':
+            data = moving_averages(dropdown, start_date)
+        elif dropdown_option == 'Cumulative Returns':
+        #number_tickers = st.sidebar.number_input('Specify the number of tickers')  
+            plot_returns(dropdown)
+
+    
+if __name__ == "__main__":
     main()
