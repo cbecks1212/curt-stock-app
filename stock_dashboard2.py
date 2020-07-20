@@ -276,7 +276,7 @@ def main():
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
             elif dropdown_option == 'Expected Returns':
-                data = expected_r(tickers, start_date)
+                data = expected_r(dropdown, start_date)
             elif dropdown_option == 'Asset Allocation':
                 amount = st.sidebar.number_input('Enter the amount you wish to invest')
                 button = st.sidebar.button('Click for Results')
