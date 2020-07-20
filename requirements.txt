@@ -6,3 +6,5 @@ plotly==4.4.1
 streamlit==0.62.1
 requests==2.22.0
 lxml==4.4.2
+ffn==0.3.4
+pyportfolioopt==1.2.4
