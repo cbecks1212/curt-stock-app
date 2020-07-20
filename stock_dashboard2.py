@@ -8,6 +8,11 @@ import pandas as pd
 from pylab import plt, mpl
 import matplotlib.pyplot as plt
 import lxml
+import ffn 
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt import risk_models
+from pypfopt import expected_returns
+from pypfopt import discrete_allocation, DiscreteAllocation
 def main():
 
     #st.title('Curt App')
@@ -173,9 +178,81 @@ def main():
             fig = px.line(returns1, x=returns1.index, y=returns1['Close'], title='Cumulative Returns on $1 Investment')
             st.write(fig)
 
+    def expected_r(tickers, start_date):
+        today = pd.datetime.today()
+        if start_date == '1y':
+            delta = today - pd.DateOffset(years=1)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '3y':
+            delta = today - pd.DateOffset(years=3)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '5y':
+            delta = today - pd.DateOffset(years=5)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '10y':
+            delta = today - pd.DateOffset(years=10)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == 'max':
+            delta = today - pd.DateOffset(years=30)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+
+        prices = ffn.get(tickers, start=delta)
+        mu = expected_returns.mean_historical_return(prices)
+        S = risk_models.sample_cov(prices)
+        ef = EfficientFrontier(mu, S)
+        raw_weights = ef.max_sharpe()
+        cleaned_weights = ef.clean_weights()
+        st.write(cleaned_weights)
+        metrics = ef.portfolio_performance(verbose=True)
+        st.write('Expected Return: {:.2f}'.format(metrics[0]))
+        st.write('Annual Volatility: {:.2f}'.format(metrics[1]))
+        st.write('Sharpe Ratio {:.2f}'.format(metrics[2]))
+        
+        
+
+    def asset_allocation(tickers, start_date):
+        today = pd.datetime.today()
+        if start_date == '1y':
+            delta = today - pd.DateOffset(years=1)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '3y':
+            delta = today - pd.DateOffset(years=3)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '5y':
+            delta = today - pd.DateOffset(years=5)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '10y':
+            delta = today - pd.DateOffset(years=10)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == 'max':
+            delta = today - pd.DateOffset(years=30)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        prices = ffn.get(tickers, start=delta)
+        mu = expected_returns.mean_historical_return(prices)
+        S = risk_models.sample_cov(prices)
+        ef = EfficientFrontier(mu, S)
+        raw_weights = ef.max_sharpe()
+        cleaned_weights = ef.clean_weights()
+        latest_prices = discrete_allocation.get_latest_prices(prices)
+        da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=amount)
+        allocation, leftover = da.lp_portfolio()
+        st.subheader('Asset Allocation breakdown: ')
+        st.write(allocation)
+        st.write("Funds remaining: ${:.2f}".format(leftover))
+
 
     index = st.sidebar.selectbox('Choose an Index: ', ['S&P 500', 'NASDAQ', 'Search for Ticker'])
-    dropdown_option = st.sidebar.selectbox('Pick a Chart', ['Price History', 'Short-Vs-Long-Term Moving Avg', 'Daily Returns', 'Cumulative Returns'])
+    dropdown_option = st.sidebar.selectbox('Pick a Chart', ['Price History', 'Short-Vs-Long-Term Moving Avg', 'Daily Returns', 'Cumulative Returns', 'Expected Returns', 'Asset Allocation'])
     start_date = st.sidebar.selectbox('Interval', ['1y', '3y', '5y', '10y', 'max'])
     if index == 'S&P 500':
         dropdown = st.sidebar.multiselect('S&P Tickers', df['Symbol'])
@@ -198,6 +275,13 @@ def main():
                 for stock in stocks:
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
+            elif dropdown_option == 'Expected Returns':
+                data = expected_rturns(tickers, start_date)
+            elif dropdown_option == 'Asset Allocation':
+                amount = st.sidebar.number_input('Enter the amount you wish to invest')
+                button = st.sidebar.button('Click for Results')
+                if button:
+                    data = asset_allocation(dropdown, start_date)
 
 
     elif index == 'NASDAQ':
@@ -217,7 +301,14 @@ def main():
                 for stock in stocks:
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
-
+            elif dropdown_option == 'Expected Returns':
+                data = expected_r(dropdown, start_date)
+            elif dropdown_option == 'Asset Allocation':
+                amount = st.sidebar.number_input('Enter the amount you wish to invest')
+                button = st.sidebar.button('Click for Results')
+                if button:
+                    data = asset_allocation(dropdown, start_date)
+    
     elif index == 'Search for Ticker':
         dropdown = st.sidebar.text_input('enter a ticker')
         if dropdown_option == 'Price History':
