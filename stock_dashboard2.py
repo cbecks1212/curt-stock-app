@@ -3,6 +3,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import yfinance as yf
 from scipy.stats import norm
+import scipy.stats as scs
+import scipy.optimize as sco
 import requests
 import pandas as pd
 from pylab import plt, mpl
@@ -13,6 +15,10 @@ from pypfopt.efficient_frontier import EfficientFrontier
 from pypfopt import risk_models
 from pypfopt import expected_returns
 from pypfopt import discrete_allocation, DiscreteAllocation
+import numpy as np
+plt.style.use('seaborn')
+mpl.rcParams['font.family'] = 'serif'
+#%matplotlib inline
 def main():
 
     #st.title('Curt App')
@@ -212,9 +218,94 @@ def main():
         st.write('Expected Return: {:.2f}'.format(metrics[0]))
         st.write('Annual Volatility: {:.2f}'.format(metrics[1]))
         st.write('Sharpe Ratio {:.2f}'.format(metrics[2]))
-        
-        
 
+    def port_ret(weights):
+        return np.sum(rets.mean() * weights) * 252
+
+    def port_vol(weights):
+        return np.sqrt(np.dot(weights.T, np.dot(rets.cov() * 252, weights)))
+
+    def min_func_sharpe(weights):
+        return -port_ret(weights)/port_vol(weights)
+        
+        
+    def expected_r2(tickers, start_date):
+        today = pd.datetime.today()
+        if start_date == '1y':
+            delta = today - pd.DateOffset(years=1)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '3y':
+            delta = today - pd.DateOffset(years=3)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '5y':
+            delta = today - pd.DateOffset(years=5)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == '10y':
+            delta = today - pd.DateOffset(years=10)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+        elif start_date == 'max':
+            delta = today - pd.DateOffset(years=30)
+            delta = delta.date()
+            delta = delta.strftime('%Y-%m-%d')
+
+        prices = ffn.get(tickers, start=delta)
+        noa = len(tickers)
+        global rets
+        rets = np.log(prices / prices.shift(1))
+        #rets.hist(bins=40, figsize=(10,8))
+        cons = ({'type': 'eq', 'fun': lambda x: np.sum(x)-1})
+        bnds = tuple((0,1) for x in range(noa))
+        eweights = np.array(noa * [1. / noa,])
+        opts = sco.minimize(min_func_sharpe, eweights, method='SLSQP', bounds=bnds, constraints=cons)
+        st.write("The expected return is: {:.2f}".format(port_ret(opts['x'].round(3))))
+        st.write("The expected volatility is: {:.2f}".format(port_vol(opts['x'].round(3))))
+        st.write("The Shapre Ratio is: {:.2f}".format(port_ret(opts['x']/port_vol(opts['x']))))
+        st.subheader("How to best allocate the portfolio to maximize the return:")
+        i = 0
+        for x in opts['x']:
+            st.write(tickers[i] + ": " + str(x.round(2)))
+            i = i + 1
+
+        prets = []
+        pvols = []
+        for p in range(2500):
+            weights = np.random.random(noa)
+            weights /= np.sum(weights)
+            prets.append(port_ret(weights))
+            pvols.append(port_vol(weights))
+        prets = np.array(prets)
+        pvols = np.array(pvols)
+        #optv = sco.minimize(port_vol, eweights, method='SLSQP', bounds=bnds, constraints=cons)
+        #cons = ({'type': 'eq', 'fun': lambda x: port_ret(x)- tret}, {'type': 'eq', 'fun': lambda x: np.sum(x)-1})
+
+        #bnds = tuple((0,1) for x in weights)
+
+        #trets = np.linspace(0.05, 0.3, 50)
+        #tvols = []
+        #for tret in trets:
+        #    res = sco.minimize(port_vol, eweights, method='SLSQP', bounds=bnds, constraints=cons)
+        #    tvols.append(res['fun'])
+        #tvols = np.array(tvols)
+
+        #fig, ax = plt.subplots()
+        #im = plt.scatter(pvols, prets, c=prets/pvols, marker='.', alpha=0.8, cmap='coolwarm')
+        #plt.plot(port_vol(opts['x']), port_ret(opts['x']), 'y*', markersize=15.0)
+        #plt.plot(port_vol(optv['x']), port_ret(optv['x']), 'r*', markersize=15.0)
+        #plt.xlabel('Expected Volatility')
+        #plt.ylabel('Expected Return')
+        #fig.colorbar(im, label='Sharpe ratio')
+        #st.write(fig)
+
+        fig, ax = plt.subplots()
+        im= plt.scatter(pvols, prets, c=prets/pvols, marker='o', cmap='coolwarm')
+        plt.xlabel('Expected Volatility')
+        plt.ylabel('Expected Return')
+        fig.colorbar(im, label='Sharpe Ratio')
+        st.write(fig)
     def asset_allocation(tickers, start_date):
         today = pd.datetime.today()
         if start_date == '1y':
@@ -276,7 +367,7 @@ def main():
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
             elif dropdown_option == 'Expected Returns':
-                data = expected_r(dropdown, start_date)
+                data = expected_r2(dropdown, start_date)
             elif dropdown_option == 'Asset Allocation':
                 amount = st.sidebar.number_input('Enter the amount you wish to invest')
                 button = st.sidebar.button('Click for Results')
@@ -302,7 +393,7 @@ def main():
                     ticker_list.append(stock)
                 plot_returns(ticker_list)
             elif dropdown_option == 'Expected Returns':
-                data = expected_r(dropdown, start_date)
+                data = expected_r2(dropdown, start_date)
             elif dropdown_option == 'Asset Allocation':
                 amount = st.sidebar.number_input('Enter the amount you wish to invest')
                 button = st.sidebar.button('Click for Results')
@@ -310,7 +401,8 @@ def main():
                     data = asset_allocation(dropdown, start_date)
     
     elif index == 'Search for Ticker':
-        dropdown = st.sidebar.text_input('enter a ticker')
+        dropdown = st.sidebar.text_input('enter a series of tickers e.g. DOCU MSFT AMZN')
+        dropdown = dropdown.split()
         if dropdown_option == 'Price History':
             data = load_data_history(dropdown, start_date)
         elif dropdown_option == 'Daily Returns':
@@ -320,6 +412,17 @@ def main():
         elif dropdown_option == 'Cumulative Returns':
         #number_tickers = st.sidebar.number_input('Specify the number of tickers')  
             plot_returns(dropdown)
+        elif dropdown_option == 'Expected Returns':
+            st.markdown("""This page illustrates how to best allocate your portfolio
+            by maximizing the expected return and minimzing the amount volatility associated with that return. 
+            Note, Sharpe Ratio of 1 or higher is considered very good.""")
+            data = expected_r2(dropdown, start_date)
+        elif dropdown_option == 'Asset Allocation':
+            amount = st.sidebar.number_input('Enter the amount you wish to invest')
+            button = st.sidebar.button('Click for Results')
+            if button:
+                st.markdown("recommends the number of shares to buy from each stcok chosen, based on the investment amount.")
+                data = asset_allocation(dropdown, start_date)
 
     
 if __name__ == "__main__":
