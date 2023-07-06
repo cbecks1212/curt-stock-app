@@ -1,6 +1,6 @@
 pandas==0.25.3
 yfinance==0.1.54
-scipy==1.4.1
+scipy==1.10.0
 matplotlib==3.1.2
 plotly==4.4.1
 streamlit==0.62.1
